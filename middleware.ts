@@ -17,6 +17,11 @@ export async function middleware(request: NextRequest) {
     "/home",
   ];
 
+  // Allow API routes on both domains
+  if (url.pathname.startsWith("/api/")) {
+    return await updateSession(request);
+  }
+
   // Allow root path on both domains
   if (url.pathname === "/") {
     return await updateSession(request);
@@ -33,10 +38,11 @@ export async function middleware(request: NextRequest) {
     return Response.redirect(newUrl);
   }
 
-  // If the request is on the app subdomain but not for an app path
+  // If the request is on the app subdomain but not for an app path or API route
   if (
     isAppSubdomain &&
     !appPaths.some((path) => url.pathname.startsWith(path)) &&
+    !url.pathname.startsWith("/api/") &&
     url.pathname !== "/"
   ) {
     // Redirect to main domain

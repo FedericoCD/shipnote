@@ -5,10 +5,12 @@ import AuthButtonClient from "@/components/header-auth-client";
 import { LinearTicketSelector } from "@/components/linear-ticket-selector";
 import { ToneSelector } from "@/components/tone-selector";
 import { UpdatePreview } from "@/components/update-preview";
+import { LinearConnection } from "@/components/linear-connection";
 
 export default function HomePage() {
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [selectedTone, setSelectedTone] = useState("executive");
+  const [linearApiKey, setLinearApiKey] = useState("");
 
   return (
     <div className="flex-1 w-full flex flex-col gap-8 p-8">
@@ -20,22 +22,34 @@ export default function HomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="bg-card p-6 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">
-              Select Linear Tickets
-            </h2>
-            <LinearTicketSelector
-              selectedTickets={selectedTickets}
-              onTicketsChange={setSelectedTickets}
-            />
+            <h2 className="text-lg font-semibold mb-4">Linear Connection</h2>
+            <LinearConnection onApiKeyChange={setLinearApiKey} />
           </div>
 
-          <div className="bg-card p-6 rounded-lg shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Choose Update Tone</h2>
-            <ToneSelector
-              selectedTone={selectedTone}
-              onToneChange={setSelectedTone}
-            />
-          </div>
+          {linearApiKey && (
+            <>
+              <div className="bg-card p-6 rounded-lg shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">
+                  Select Linear Tickets
+                </h2>
+                <LinearTicketSelector
+                  selectedTickets={selectedTickets}
+                  onTicketsChange={setSelectedTickets}
+                  apiKey={linearApiKey}
+                />
+              </div>
+
+              <div className="bg-card p-6 rounded-lg shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">
+                  Choose Update Tone
+                </h2>
+                <ToneSelector
+                  selectedTone={selectedTone}
+                  onToneChange={setSelectedTone}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-card p-6 rounded-lg shadow-sm">
@@ -43,6 +57,7 @@ export default function HomePage() {
           <UpdatePreview
             selectedTickets={selectedTickets}
             selectedTone={selectedTone}
+            linearApiKey={linearApiKey}
           />
         </div>
       </div>

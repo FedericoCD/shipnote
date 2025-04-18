@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function AuthButtonClient() {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
-
+  const router = useRouter();
   useEffect(() => {
     const getUser = async () => {
       const {
@@ -31,6 +32,7 @@ export default function AuthButtonClient() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return user ? (

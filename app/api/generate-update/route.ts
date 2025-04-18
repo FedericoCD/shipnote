@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { fetchIssueDetails } from "@/utils/linear";
+import { createClient } from "@/utils/supabase/server";
+
+console.log("OpenAI API Key configured:", !!process.env.OPENAI_API_KEY);
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,7 +22,19 @@ const TONE_PROMPTS = {
 
 export async function POST(request: Request) {
   try {
-    const { selectedTickets, tone } = await request.json();
+    // Check authentication
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("Authentication failed:", { authError, hasUser: !!user });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { selectedTickets, tone, linearApiKey } = await request.json();
 
     if (!selectedTickets?.length) {
       return NextResponse.json(
@@ -34,30 +50,30 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch ticket details from Linear
+    if (!linearApiKey) {
+      return NextResponse.json(
+        { error: "Linear API key is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OpenAI API key is not configured");
+      return NextResponse.json(
+        { error: "OpenAI API key is not configured" },
+        { status: 500 }
+      );
+    }
+
+    // Fetch ticket details from Linear using our utility function
     const ticketDetails = await Promise.all(
       selectedTickets.map(async (ticketId: string) => {
-        const response = await fetch("https://api.linear.app/graphql", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.LINEAR_API_KEY}`,
-          },
-          body: JSON.stringify({
-            query: `
-              query {
-                issue(id: "${ticketId}") {
-                  title
-                  description
-                  url
-                }
-              }
-            `,
-          }),
-        });
-
-        const data = await response.json();
-        return data.data.issue;
+        try {
+          return await fetchIssueDetails(linearApiKey, ticketId);
+        } catch (error) {
+          console.error(`Error fetching ticket ${ticketId}:`, error);
+          throw new Error("Failed to fetch ticket details from Linear");
+        }
       })
     );
 
@@ -102,7 +118,9 @@ Please generate a concise update that incorporates these changes in the specifie
   } catch (error) {
     console.error("Error generating update:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
       { status: 500 }
     );
   }
